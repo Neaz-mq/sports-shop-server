@@ -11,6 +11,7 @@ app.use(express.json());
 
 
 
+
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0zyo6s3.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -27,8 +28,24 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     
+
+    
+
+    const itemCollection = client.db("sportsDb").collection("item");
+    const reviewCollection = client.db("sportsDb").collection("reviews");
+
+    app.get('/item', async(req, res) =>{
+      const result = await itemCollection.find().toArray();
+      res.send(result);
+  })
+
+  app.get('/reviews', async(req, res) =>{
+    const result = await reviewCollection.find().toArray();
+    res.send(result);
+})
+
     // Send a ping to confirm a successful connection
-  
+   
     // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
@@ -36,6 +53,7 @@ async function run() {
   }
 }
 run().catch(console.dir);
+
 
 
 app.get('/', (req, res) => {
