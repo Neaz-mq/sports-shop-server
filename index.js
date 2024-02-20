@@ -31,6 +31,7 @@ async function run() {
 
     const itemCollection = client.db("sportsDb").collection("item");
     const reviewCollection = client.db("sportsDb").collection("reviews");
+    const cartCollection = client.db("sportsDb").collection("carts");
 
     app.get('/item', async(req, res) =>{
       const result = await itemCollection.find().toArray();
@@ -40,6 +41,17 @@ async function run() {
   app.get('/reviews', async(req, res) =>{
     const result = await reviewCollection.find().toArray();
     res.send(result);
+})
+
+// carts collection
+
+app.post('/carts', async(req, res) => {
+
+  const cartItem = req.body;
+
+  const result = await cartCollection.insertOne(cartItem);
+  res.send(result);
+
 })
 
     // Send a ping to confirm a successful connection
