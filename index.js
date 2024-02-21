@@ -27,35 +27,37 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-  
+
 
     const itemCollection = client.db("sportsDb").collection("item");
     const reviewCollection = client.db("sportsDb").collection("reviews");
     const cartCollection = client.db("sportsDb").collection("carts");
 
-    app.get('/item', async(req, res) =>{
+    app.get('/item', async (req, res) => {
       const result = await itemCollection.find().toArray();
       res.send(result);
-  })
+    })
 
-  app.get('/reviews', async(req, res) =>{
-    const result = await reviewCollection.find().toArray();
-    res.send(result);
-})
+    app.get('/reviews', async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    })
 
-// carts collection
+    // carts collection
 
-app.post('/carts', async(req, res) => {
+    app.get('/carts', async(req, res) => {      
+      const result = await  cartCollection.find().toArray();
+      res.send(result);
+    });
 
-  const cartItem = req.body;
-
-  const result = await cartCollection.insertOne(cartItem);
-  res.send(result);
-
-})
+    app.post('/carts', async (req, res) => {
+     const cartItem = req.body;
+     const result = await cartCollection.insertOne(cartItem);
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
-   
+
     // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
@@ -67,11 +69,11 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    
-    res.send('Items are here')
+
+  res.send('Items are here')
 })
 
 
 app.listen(port, () => {
-    console.log(`Sports Shop is live on port ${port}`);
+  console.log(`Sports Shop is live on port ${port}`);
 })
