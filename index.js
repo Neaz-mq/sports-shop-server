@@ -138,6 +138,12 @@ async function run() {
     app.get('/item', async (req, res) => {
       const result = await itemCollection.find().toArray();
       res.send(result);
+    });
+
+    app.post('/item', verifyToken, verifyAdmin, async (req, res) => {
+        const item = req.body;
+        const result = await itemCollection.insertOne(item);
+        res.send(result)
     })
 
     app.get('/reviews', async (req, res) => {
