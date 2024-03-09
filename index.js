@@ -144,6 +144,13 @@ async function run() {
         const item = req.body;
         const result = await itemCollection.insertOne(item);
         res.send(result)
+    });
+
+    app.delete('/item/:id', verifyToken, verifyAdmin, async (req, res) => {
+       const id = req.params.id;
+       const query = {_id: new ObjectId(id)}
+       const result = await itemCollection.deleteOne(query);
+       res.send(result);
     })
 
     app.get('/reviews', async (req, res) => {
