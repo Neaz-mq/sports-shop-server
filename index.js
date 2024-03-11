@@ -139,12 +139,37 @@ async function run() {
       const result = await itemCollection.find().toArray();
       res.send(result);
     });
+    app.get('/item/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await itemCollection.findOne(query);
+      res.send(result);
+    })
 
     app.post('/item', verifyToken, verifyAdmin, async (req, res) => {
         const item = req.body;
         const result = await itemCollection.insertOne(item);
         res.send(result)
     });
+
+    app.patch('/item/:id', async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          name: item.name,
+          category: item.category,
+          price: item.price,
+          description: item.description,
+          image: item.image
+        }
+      }
+
+      const result = await itemCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+    })
+
 
     app.delete('/item/:id', verifyToken, verifyAdmin, async (req, res) => {
        const id = req.params.id;
