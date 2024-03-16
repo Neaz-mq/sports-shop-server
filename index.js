@@ -292,17 +292,17 @@ async function run() {
             from: 'item',
             localField: 'menuItemIds',
             foreignField: '_id',
-            as: 'menuItems'
+            as: 'items'
           }
         },
         {
-          $unwind: '$menuItems'
+          $unwind: '$items'
         },
         {
           $group: {
-            _id: '$$menuItems.category',
+            _id: '$items.category',
             quantity: { $sum: 1 },
-            revenue: { $sum: '$menuItems.price' }
+            revenue: { $sum: '$items.price' }
           }
         },
         {
