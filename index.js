@@ -1,10 +1,21 @@
 const express = require('express');
+const nodemailer = require("nodemailer");
 const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
+
+// Nodemailer configuration
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "neazmorshed.ict@gmail.com",
+    pass: "reltygwxdzxnwpxi",
+  },
+});
+
 
 
 // middlewares
@@ -25,6 +36,29 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+// Function to send email notification
+async function sendEmailNotification(email, message, transactionId) {
+  try {
+
+    const info = await transporter.sendMail({
+      from: '<neazmorshed.ict@gmail.com>', // sender address
+      to: "neazmorshed666@gmail.com", // list of receivers
+      subject: "Sports Item Order Confirmation", // Subject line
+      // HTML body with the message and transaction ID
+      html: `
+    <div>
+      <h2>Thank you for your order</h2>
+      <h4>Your Transaction Id: <strong>${transactionId}</strong></h4>
+      <p>We would like to get your feedback about the item</p>
+    </div>
+  `
+    });
+    console.log("Email sent: %s", info.messageId);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+}
 
 async function run() {
   try {
@@ -69,15 +103,15 @@ async function run() {
 
 
     // use verify admin after verify token
-    const verifyAdmin = async(req,res,next) => {
-        const email = req.decoded.email;
-        const query = {email: email};
-        const user = await userCollection.findOne(query);
-        const isAdmin = user?.role === 'admin';
-        if(!isAdmin){
-          return res.status(403).send({message: 'forbidden access'});
-        }
-        next();
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === 'admin';
+      if (!isAdmin) {
+        return res.status(403).send({ message: 'forbidden access' });
+      }
+      next();
     }
 
 
@@ -128,7 +162,7 @@ async function run() {
       res.send(result);
     })
 
-    app.delete('/users/:id', verifyToken, verifyAdmin,  async (req, res) => {
+    app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await userCollection.deleteOne(query);
@@ -148,9 +182,9 @@ async function run() {
     })
 
     app.post('/item', verifyToken, verifyAdmin, async (req, res) => {
-        const item = req.body;
-        const result = await itemCollection.insertOne(item);
-        res.send(result)
+      const item = req.body;
+      const result = await itemCollection.insertOne(item);
+      res.send(result)
     });
 
     app.patch('/item/:id', async (req, res) => {
@@ -173,10 +207,10 @@ async function run() {
 
 
     app.delete('/item/:id', verifyToken, verifyAdmin, async (req, res) => {
-       const id = req.params.id;
-       const query = {_id: new ObjectId(id)}
-       const result = await itemCollection.deleteOne(query);
-       res.send(result);
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await itemCollection.deleteOne(query);
+      res.send(result);
     })
 
     app.get('/reviews', async (req, res) => {
@@ -237,6 +271,15 @@ async function run() {
     app.post('/payments', async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
+      // Send email notification to the receiver
+      const receiverEmail = 'neazmorshed666@gmail.com'; // Receiver's email
+      const receiverMessage = 'A payment was received!'; // Customize your message here
+      await sendEmailNotification(receiverEmail, receiverMessage, payment.transactionId);
+
+      // Send email confirmation to the user
+      const userEmail = 'neazmorshed.ict@gmail.com'; // User's email
+      const userConfirmationMessage = 'Your payment was successful!'; // Customize your message here
+      await sendEmailNotification(userEmail, userConfirmationMessage, payment.transactionId);
 
       //  carefully delete each item from the cart
       console.log('payment info', payment);
@@ -246,41 +289,46 @@ async function run() {
         }
       };
       const deleteResult = await cartCollection.deleteMany(query);
+
       res.send({ paymentResult, deleteResult });
+
+
     });
 
-      // stats or analytics
-      app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
-        const users = await userCollection.estimatedDocumentCount();
-        const items = await itemCollection.estimatedDocumentCount();
-        const orders = await paymentCollection.estimatedDocumentCount();
-  
-        // this is not the best way
-        // const payments = await paymentCollection.find().toArray();
-        // const revenue = payments.reduce((total, payment) => total + payment.price, 0);
-        
-        const result = await paymentCollection.aggregate([
-          {
-            $group: {
-              _id: null,
-              totalRevenue: {
-                $sum: '$price' 
-              }
+
+
+    // stats or analytics
+    app.get('/admin-stats', verifyToken, verifyAdmin, async (req, res) => {
+      const users = await userCollection.estimatedDocumentCount();
+      const items = await itemCollection.estimatedDocumentCount();
+      const orders = await paymentCollection.estimatedDocumentCount();
+
+      // this is not the best way
+      // const payments = await paymentCollection.find().toArray();
+      // const revenue = payments.reduce((total, payment) => total + payment.price, 0);
+
+      const result = await paymentCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: '$price'
             }
           }
-        ]).toArray();
-  
-        const revenue = result.length > 0 ? result[0].totalRevenue : 0;
-  
-        res.send({
-          users,
-          items,
-          orders,
-          revenue
-        })
-      });
+        }
+      ]).toArray();
 
-      // using aggregate pipeline
+      const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+      res.send({
+        users,
+        items,
+        orders,
+        revenue
+      })
+    });
+
+    // using aggregate pipeline
 
     app.get('/order-stats', verifyToken, verifyAdmin, async (req, res) => {
       const result = await paymentCollection.aggregate([
